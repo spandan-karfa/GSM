@@ -1,0 +1,5 @@
+telethon==1.28.5
+pyTelegramBotAPI==4.14.1
+flask==2.3.3
+pymongo==4.5.0
+dnspython==2.4.2
