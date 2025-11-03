@@ -24,7 +24,6 @@ from telethon import TelegramClient, events
 from telethon.errors import SessionPasswordNeededError
 import telebot
 from telebot import types
-from web_server import keep_alive  
 from mongo_db import mongo_manager  # MongoDB integration
 
 # ==============================
