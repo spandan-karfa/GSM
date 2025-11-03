@@ -23,7 +23,8 @@ from typing import Dict, Optional
 from telethon import TelegramClient, events
 from telethon.errors import SessionPasswordNeededError
 import telebot
-from telebot import types 
+from telebot import types
+from web_server import keep_alive  
 from mongo_db import mongo_manager  # MongoDB integration
 
 # ==============================
@@ -1331,34 +1332,47 @@ def process_phone(message, uid):
 
 @bot.message_handler(commands=['toggle'])
 def cmd_toggle(message):
-    uid=message.from_user.id
-    if uid not in user_clients:
-        bot.reply_to(message,"⚠️ Not logged in.")
+    uid = message.from_user.id
+    if not is_approved(uid):
+        bot.reply_to(message, "🚫 Not approved or approval expired.")
         return
-    markup=types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton("🟢 On",callback_data=f"on:{uid}"),
-               types.InlineKeyboardButton("🔴 Off",callback_data=f"off:{uid}"))
-    bot.send_message(uid,"Toggle Userbot:",reply_markup=markup)
+        
+    if uid not in user_clients:
+        bot.reply_to(message, "⚠️ Not logged in.")
+        return
+        
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton("🟢 On", callback_data=f"on:{uid}"),
+               types.InlineKeyboardButton("🔴 Off", callback_data=f"off:{uid}"))
+    bot.send_message(uid, "Toggle Userbot:", reply_markup=markup)
 
 @bot.callback_query_handler(func=lambda c:c.data.startswith("on:") or c.data.startswith("off:"))
 def cb_toggle(call):
-    action,uid_str=call.data.split(":")
-    uid=int(uid_str)
-    if call.from_user.id!=uid and call.from_user.id!=BOT_OWNER_ID and not is_admin(call.from_user.id):
-        bot.answer_callback_query(call.id,"Not allowed")
+    action, uid_str = call.data.split(":")
+    uid = int(uid_str)
+    
+    # Check if user is approved
+    if not is_approved(uid):
+        bot.answer_callback_query(call.id, "Not approved")
         return
-    client=user_clients.get(uid)
+        
+    if call.from_user.id != uid and call.from_user.id != BOT_OWNER_ID and not is_admin(call.from_user.id):
+        bot.answer_callback_query(call.id, "Not allowed")
+        return
+        
+    client = user_clients.get(uid)
     if not client:
         return
-    if action=="on":
-        farming_enabled[uid]=True
+        
+    if action == "on":
+        farming_enabled[uid] = True
         asyncio.run_coroutine_threadsafe(send_explore_with_timeout(client, uid, True), loop)
-        bot.send_message(uid,"🟢 Farming started")
-        bot.answer_callback_query(call.id,"Started")
+        bot.send_message(uid, "🟢 Farming started")
+        bot.answer_callback_query(call.id, "Started")
     else:
-        farming_enabled[uid]=False
-        bot.send_message(uid,"🔴 Farming stopped")
-        bot.answer_callback_query(call.id,"Stopped")
+        farming_enabled[uid] = False
+        bot.send_message(uid, "🔴 Farming stopped")
+        bot.answer_callback_query(call.id, "Stopped")
 
 @bot.message_handler(commands=['rate'])
 def cmd_rate(message):
@@ -1422,16 +1436,6 @@ def process_ticket_price(message, uid):
     except ValueError:
         bot.reply_to(message, "❌ Invalid number")
 
-@bot.message_handler(commands=['debug'])
-def cmd_debug(message):
-    uid = message.from_user.id
-    if uid in debug_users:
-        debug_users.remove(uid)
-        bot.reply_to(message, "🔴 Debug off")
-    else:
-        debug_users.add(uid)
-        bot.reply_to(message, "🟢 Debug on")
-
 @bot.callback_query_handler(func=lambda c: c.data.startswith("gcnoti_"))
 def cb_gcnoti(call):
     action, uid_str = call.data.split(":")
@@ -1479,7 +1483,6 @@ def cmd_dbstats(message):
         response += f"⚙️ User Configs: `{stats.get('user_configs', 0)}`\n"
         response += f"📝 User Data: `{stats.get('user_data', 0)}`\n"
         response += f"💾 Session Files: `{stats.get('session_files', 0)}`\n"
-        response += f"💾 Active Sessions: `{stats.get('sessions', 0)}`\n"
         response += f"👑 Admins: `{len(admins)}`\n\n"
         response += "💡 All data is now stored in MongoDB!"
         
