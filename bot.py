@@ -24,6 +24,7 @@ from telethon import TelegramClient, events
 from telethon.errors import SessionPasswordNeededError
 import telebot
 from telebot import types
+from web_server import keep_alive  
 from mongo_db import mongo_manager  # MongoDB integration
 
 # ==============================
@@ -537,7 +538,7 @@ async def attach_handlers(user_id, client: TelegramClient):
                 return
 
             # Encounter detection (includes ⚔️ and note)
-            if any(k in text for k in ["/explore", "threat level", "you run into", "encounter", "⚔️", "note"]):
+            if any(k in text for k in ["ㅤㅤㅤ", "threat level", "you run into", "encounter", "⚔️", "note"]):
                 state['explore_response_event'].set()
                 await handle_buttons(event, user_id, "Monster", True)
 
