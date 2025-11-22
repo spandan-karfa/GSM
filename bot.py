@@ -30,7 +30,7 @@ from mongo_db import mongo_manager  # MongoDB integration
 # ==============================
 # CONFIG
 # ==============================
-BOT_TOKEN = "8321893069:AAEklcRLmi_QOZruzXW2ZpSCh1w5aNzU4f8"
+BOT_TOKEN = "8277803795:AAF4ep6bdQvrtHpI2Sd07NGXZuoo_WV2SmE"
 BOT_OWNER_ID = 6284630712   # your Telegram user id
 
 API_ID = 28484298            # your Telegram API ID
